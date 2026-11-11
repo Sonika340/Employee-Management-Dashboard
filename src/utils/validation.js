@@ -2,7 +2,12 @@
  * Validation utility functions for Employee Form
  */
 
-export const validateField = (name, value) => {
+export const validateField = (
+  name,
+  value,
+  existingEmployees = [],
+  currentEmployeeId = null
+) => {
   const trimmed = typeof value === 'string' ? value.trim() : value;
 
   switch (name) {
@@ -16,9 +21,19 @@ export const validateField = (name, value) => {
       if (!trimmed) {
         return 'Email address is required';
       }
-      // Standard email regex
+      // Standard email regex format
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
         return 'Enter a valid email address, e.g. name@company.com';
+      }
+      // Bonus: Duplicate email check (case-insensitive, exclude currently edited employee)
+      if (existingEmployees && existingEmployees.length > 0) {
+        const isDuplicate = existingEmployees.some((emp) => {
+          const isSameId = currentEmployeeId && emp.id === currentEmployeeId;
+          return !isSameId && emp.email.toLowerCase() === trimmed.toLowerCase();
+        });
+        if (isDuplicate) {
+          return 'An employee with this email already exists';
+        }
       }
       return '';
 
@@ -61,12 +76,21 @@ export const validateField = (name, value) => {
   }
 };
 
-export const validateAllFields = (formData) => {
+export const validateAllFields = (
+  formData,
+  existingEmployees = [],
+  currentEmployeeId = null
+) => {
   const errors = {};
   const fields = ['name', 'email', 'phone', 'department', 'designation', 'joiningDate', 'status'];
 
   fields.forEach((field) => {
-    const error = validateField(field, formData[field]);
+    const error = validateField(
+      field,
+      formData[field],
+      existingEmployees,
+      currentEmployeeId
+    );
     if (error) {
       errors[field] = error;
     }

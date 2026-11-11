@@ -14,6 +14,7 @@ export default function EmployeeForm({
   successMessage = null
 }) {
   const isEdit = mode === 'edit' && Boolean(employeeToEdit);
+  const currentEmployeeId = isEdit ? employeeToEdit?.id : null;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ export default function EmployeeForm({
 
   const [errors, setErrors] = useState({});
 
-  // Sync state when employeeToEdit changes
+  // Sync state when employeeToEdit or mode changes
   useEffect(() => {
     if (isEdit && employeeToEdit) {
       setFormData({
@@ -60,13 +61,19 @@ export default function EmployeeForm({
     const updated = { ...formData, [field]: value };
     setFormData(updated);
 
-    // Live validation on change: clears error when valid
-    const fieldError = validateField(field, value);
+    // Live validation on change: clears error when valid, or shows duplicate email error
+    const fieldError = validateField(
+      field,
+      value,
+      employeesList,
+      currentEmployeeId
+    );
+
     setErrors((prev) => {
       const next = { ...prev };
       if (!fieldError) {
         delete next[field];
-      } else if (prev[field]) {
+      } else if (prev[field] || field === 'email') {
         next[field] = fieldError;
       }
       return next;
@@ -74,7 +81,12 @@ export default function EmployeeForm({
   };
 
   const handleBlur = (field) => {
-    const fieldError = validateField(field, formData[field]);
+    const fieldError = validateField(
+      field,
+      formData[field],
+      employeesList,
+      currentEmployeeId
+    );
     if (fieldError) {
       setErrors((prev) => ({ ...prev, [field]: fieldError }));
     }
@@ -83,7 +95,12 @@ export default function EmployeeForm({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const formErrors = validateAllFields(formData);
+    const formErrors = validateAllFields(
+      formData,
+      employeesList,
+      currentEmployeeId
+    );
+
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;

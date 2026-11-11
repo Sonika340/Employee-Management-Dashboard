@@ -3,6 +3,14 @@ import StatusBadge from './StatusBadge';
 
 export default function EmployeeTable({
   employees = [],
+  totalEmployeesCount = 0,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange = () => {},
+  startIndex = 0,
+  endIndex = 0,
+  sortOrder = 'asc',
+  onToggleSort = () => {},
   onEdit,
   onDelete
 }) {
@@ -13,6 +21,9 @@ export default function EmployeeTable({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  // Generate page numbers array [1, 2, ...]
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+
   return (
     <div className="employee-table-wrapper">
       {/* Desktop & Tablet Table */}
@@ -21,7 +32,18 @@ export default function EmployeeTable({
           <thead>
             <tr>
               <th scope="col" className="th-name">
-                Employee Name
+                <button
+                  type="button"
+                  className="table-sort-header-btn"
+                  onClick={onToggleSort}
+                  aria-label={`Sort by employee name, currently ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+                  title="Click to toggle sorting"
+                >
+                  <span>Employee Name</span>
+                  <span className="sort-arrow-indicator" aria-hidden="true">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                </button>
               </th>
               <th scope="col">Email</th>
               <th scope="col">Department</th>
@@ -139,6 +161,52 @@ export default function EmployeeTable({
           </article>
         ))}
       </div>
+
+      {/* Pagination Bar (Matching UI Template Screen 2) */}
+      {totalEmployeesCount > 0 && (
+        <nav className="table-pagination-bar" aria-label="Table pagination">
+          <span className="pagination-count-text">
+            Showing {totalEmployeesCount === 0 ? 0 : startIndex + 1}–{endIndex} of{' '}
+            {totalEmployeesCount} employees
+          </span>
+
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="pagination-btn pagination-nav-btn"
+              disabled={currentPage <= 1}
+              onClick={() => onPageChange(currentPage - 1)}
+              aria-label="Previous page"
+            >
+              Prev
+            </button>
+
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                type="button"
+                className={`pagination-btn pagination-number-btn ${
+                  currentPage === page ? 'active' : ''
+                }`}
+                onClick={() => onPageChange(page)}
+                aria-current={currentPage === page ? 'page' : undefined}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              className="pagination-btn pagination-nav-btn"
+              disabled={currentPage >= totalPages}
+              onClick={() => onPageChange(currentPage + 1)}
+              aria-label="Next page"
+            >
+              Next
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

@@ -755,6 +755,92 @@ input, select, textarea {
   background: #FDEDEB;
 }
 
+/* Sortable Table Header */
+.table-sort-header-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.table-sort-header-btn:hover {
+  color: var(--primary);
+}
+
+.sort-arrow-indicator {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Pagination Bar (Matching Screen 2) */
+.table-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background-color: #ffffff;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-count-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-number-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.pagination-nav-btn {
+  padding: 0 14px;
+}
+
 /* ---------------- Status Badge ---------------- */
 .status-badge {
   display: inline-block;

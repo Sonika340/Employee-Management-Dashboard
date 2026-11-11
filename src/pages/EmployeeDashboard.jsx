@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import DashboardCard from '../components/DashboardCard';
@@ -11,11 +11,26 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { departments, employees as initialEmployees } from '../data/employees';
 
 export default function EmployeeDashboard() {
-  // Primary application state
-  const [employeeList, setEmployeeList] = useState(initialEmployees);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'employees' | 'departments' | 'reports' | 'settings'
+  // Bonus: Load from localStorage on initialization with fallback
+  const [employeeList, setEmployeeList] = useState(() => {
+    try {
+      const savedData = localStorage.getItem('employee_dashboard_data');
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load employees from localStorage', e);
+    }
+    return initialEmployees;
+  });
 
-  // Form mode state (null = showing list/dashboard, 'add' = new employee, 'edit' = edit employee)
+  // Active navigation view ('dashboard' | 'employees' | 'departments' | 'reports' | 'settings')
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Form mode state (null = list view, 'add' = new employee, 'edit' = edit employee)
   const [formMode, setFormMode] = useState(null);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [formSuccessMessage, setFormSuccessMessage] = useState(null);
@@ -25,6 +40,13 @@ export default function EmployeeDashboard() {
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
 
+  // Bonus: Sort by name state ('asc' | 'desc')
+  const [sortOrder, setSortOrder] = useState('asc');
+
+  // Bonus: Pagination state (5 records per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   // Delete modal dialog state
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -32,12 +54,26 @@ export default function EmployeeDashboard() {
   // Mobile navigation drawer toggle
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // ---------------- Bonus: Sync to localStorage on changes ---------------- //
+  useEffect(() => {
+    try {
+      localStorage.setItem('employee_dashboard_data', JSON.stringify(employeeList));
+    } catch (e) {
+      console.error('Failed to save employees to localStorage', e);
+    }
+  }, [employeeList]);
+
+  // ---------------- Reset pagination on filter or sort change ---------------- //
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedDept, selectedStatus, sortOrder]);
+
   // ---------------- Derived Metrics ---------------- //
   const totalEmployees = employeeList.length;
   const activeEmployees = employeeList.filter((emp) => emp.status === 'Active').length;
   const inactiveEmployees = employeeList.filter((emp) => emp.status === 'Inactive').length;
 
-  // Department-wise counts calculated using reduce
+  // Live Department counts calculated using reduce (Bonus: updates live on add/edit/delete)
   const deptCounts = departments.map((dept) => {
     const count = employeeList.reduce(
       (acc, emp) => (emp.department === dept ? acc + 1 : acc),
@@ -52,8 +88,8 @@ export default function EmployeeDashboard() {
     .sort((a, b) => new Date(b.joiningDate) - new Date(a.joiningDate))
     .slice(0, 4);
 
-  // ---------------- Combined Filter Logic ---------------- //
-  // Search + Department + Status work together in ONE derived list
+  // ---------------- Combined Filter & Sort Logic ---------------- //
+  // Search + Department + Status combined in ONE derived filtered list
   const filteredEmployees = employeeList.filter((emp) => {
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = query === '' || emp.name.toLowerCase().includes(query);
@@ -62,6 +98,19 @@ export default function EmployeeDashboard() {
 
     return matchesSearch && matchesDept && matchesStatus;
   });
+
+  // Sort filtered employees by name A-Z / Z-A
+  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
+    const comparison = a.name.localeCompare(b.name);
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  // Pagination slicing (5 records per page)
+  const totalFilteredRecords = sortedEmployees.length;
+  const totalPages = Math.ceil(totalFilteredRecords / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalFilteredRecords);
+  const paginatedEmployees = sortedEmployees.slice(startIndex, endIndex);
 
   // ---------------- Navigation & View Handlers ---------------- //
   const handleTabChange = (tabId) => {
@@ -95,6 +144,10 @@ export default function EmployeeDashboard() {
     setSearchQuery('');
     setSelectedDept('All');
     setSelectedStatus('All');
+  };
+
+  const handleToggleSort = () => {
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
 
   // ---------------- CRUD Operations ---------------- //
@@ -133,7 +186,7 @@ export default function EmployeeDashboard() {
     setIsDeleteDialogOpen(false);
     setEmployeeToDelete(null);
 
-    // If deleting the employee currently being edited, return to list
+    // If deleting the currently edited employee, return to table view
     if (employeeToEdit && employeeToEdit.id === id) {
       setFormMode(null);
       setEmployeeToEdit(null);
@@ -162,7 +215,7 @@ export default function EmployeeDashboard() {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  // Determine current page title for the header
+  // Current page title
   const getHeaderTitle = () => {
     if (activeTab === 'dashboard') return 'Dashboard';
     if (formMode === 'add') return 'Employees';
@@ -210,7 +263,7 @@ export default function EmployeeDashboard() {
             </section>
 
             <div className="dashboard-panels-grid">
-              {/* Department Count Progress Bars */}
+              {/* Department Count Progress Bars (Live counts) */}
               <section className="dashboard-panel" aria-labelledby="dept-breakdown-title">
                 <div className="panel-header">
                   <h2 id="dept-breakdown-title" className="panel-title">
@@ -314,7 +367,7 @@ export default function EmployeeDashboard() {
           />
         )}
 
-        {/* 3. EMPLOYEES VIEW: LISTING, SEARCH & FILTERS */}
+        {/* 3. EMPLOYEES VIEW: LISTING, SEARCH, FILTERS, SORT & PAGINATION */}
         {activeTab === 'employees' && formMode === null && (
           <section className="employees-page-container" aria-label="Employees Directory">
             {/* Mobile Compact Metric Tiles (Screen 7) */}
@@ -359,8 +412,8 @@ export default function EmployeeDashboard() {
               </button>
             </div>
 
-            {/* Content: Empty State OR Employee Table */}
-            {filteredEmployees.length === 0 ? (
+            {/* Content: Empty State OR Paginated Employee Table */}
+            {sortedEmployees.length === 0 ? (
               <EmptyState
                 searchQuery={searchQuery}
                 selectedDept={selectedDept}
@@ -370,7 +423,15 @@ export default function EmployeeDashboard() {
               />
             ) : (
               <EmployeeTable
-                employees={filteredEmployees}
+                employees={paginatedEmployees}
+                totalEmployeesCount={totalFilteredRecords}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                sortOrder={sortOrder}
+                onToggleSort={handleToggleSort}
                 onEdit={handleOpenEditForm}
                 onDelete={handleRequestDelete}
               />
